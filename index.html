@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f172a">
+    <title>90 Günlük Sistem</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            padding-bottom: 90px;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .checkbox-custom:checked + div {
+            text-decoration: line-through;
+            color: #64748b;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="select-none">
+
+    <!-- ÜST BİLGİ PANELİ (SABİT) -->
+    <header class="sticky top-0 z-30 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-4 py-3">
+        <div class="flex justify-between items-center max-w-md mx-auto">
+            <div>
+                <div class="flex items-center gap-2">
+                    <span id="phaseBadge" class="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">1. FAZ</span>
+                    <span class="text-xs text-slate-400" id="calorieTargetBadge">Hedef: 3.300 kcal</span>
+                </div>
+                <h1 class="text-lg font-extrabold text-white mt-0.5">Gün <span id="currentDayNum">1</span> / 90</h1>
+            </div>
+            <div class="text-right">
+                <div class="text-xs text-slate-400">Kilo Hedefi</div>
+                <div class="text-sm font-bold text-emerald-400">
+                    <span id="headerCurrentWeight">78.0</span> kg <span class="text-slate-500">→</span> 90 kg
+                </div>
+            </div>
+        </div>
+        <!-- Günlük İlerleme Çubuğu -->
+        <div class="max-w-md mx-auto mt-2">
+            <div class="flex justify-between text-[11px] text-slate-400 mb-1">
+                <span>Bugünkü Tamamlanma</span>
+                <span id="dailyPercentText" class="font-bold text-emerald-400">%0</span>
+            </div>
+            <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                <div id="dailyProgressBar" class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ANA İÇERİK ALANI -->
+    <main class="max-w-md mx-auto px-4 pt-4 space-y-5">
+
+        <!-- SEKME 1: BUGÜN (GÜNLÜK AKIŞ & GÖREVLER) -->
+        <section id="tab-today" class="space-y-4">
+            <!-- Gün Seçici -->
+            <div class="flex gap-1.5 overflow-x-auto no-scrollbar pb-1" id="daySelector">
+                <button onclick="selectDayOfWeek(1)" id="dayBtn-1" class="day-btn flex-1 py-2 px-3 rounded-xl text-xs font-bold border border-slate-700 bg-slate-800 text-slate-300">Pzt</button>
+                <button onclick="selectDayOfWeek(2)" id="dayBtn-2" class="day-btn flex-1 py-2 px-3 rounded-xl text-xs font-bold border border-slate-700 bg-slate-800 text-slate-300">Sal</button>
+                <button onclick="selectDayOfWeek(3)" id="dayBtn-3" class="day-btn flex-1 py-2 px-3 rounded-xl text-xs font-bold border border-slate-700 bg-slate-800 text-slate-300">Çar</button>
+                <button onclick="selectDayOfWeek(4)" id="dayBtn-4" class="day-btn flex-1 py-2 px-3 rounded-xl text-xs font-bold border border-slate-700 bg-slate-800 text-slate-300">Per</button>
+                <button onclick="selectDayOfWeek(5)" id="dayBtn-5" class="day-btn flex-1 py-2 px-3 rounded-xl text-xs font-bold border border-slate-700 bg-slate-800 text-slate-300">Cum</button>
+                <button onclick="selectDayOfWeek(6)" id="dayBtn-6" class="day-btn flex-1 py-2 px-3 rounded-xl text-xs font-bold border border-slate-700 bg-slate-800 text-slate-300">Cmt</button>
+                <button onclick="selectDayOfWeek(0)" id="dayBtn-0" class="day-btn flex-1 py-2 px-3 rounded-xl text-xs font-bold border border-slate-700 bg-slate-800 text-slate-300">Paz</button>
+            </div>
+
+            <!-- Günün Özeti Kartı -->
+            <div class="glass-card rounded-2xl p-3.5 flex items-center justify-between border-l-4 border-l-indigo-500">
+                <div>
+                    <div id="dayScheduleTitle" class="text-sm font-bold text-white">Pazartesi Programı</div>
+                    <div id="dayWorkoutBadge" class="text-xs text-indigo-300 mt-0.5">Antrenman: İTİŞ (17:30)</div>
+                </div>
+                <button onclick="completeDayAndAdvance()" class="bg-emerald-600 hover:bg-emerald-500 active:scale-95 transition text-white text-xs font-bold px-3 py-2 rounded-xl shadow-lg">
+                    Günü Bitir ✓
+                </button>
+            </div>
+
+            <!-- Saatlik Görev Listesi -->
+            <div class="space-y-2.5" id="scheduleContainer">
+                <!-- JS ile doldurulacak -->
+            </div>
+
+            <!-- Ekstra Kişisel Not / Yarının 3 Görevi -->
+            <div class="glass-card rounded-2xl p-4">
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                    📌 Bugünün / Yarının Özel Odak Notu
+                </label>
+                <textarea id="dailyNoteInput" rows="2" oninput="saveNote()" placeholder="Örn: Yarın 07:30 bloğunda SQL/Python API çalışılacak, akşam Creapure unutulmayacak..." class="w-full bg-slate-900/90 border border-slate-700 rounded-xl p-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"></textarea>
+            </div>
+        </section>
+
+        <!-- SEKME 2: BESLENME & TARİFLER -->
+        <section id="tab-nutrition" class="space-y-4 hidden">
+            <!-- Günlük Makro Kartı -->
+            <div class="glass-card rounded-2xl p-4">
+                <h2 class="text-sm font-bold text-white mb-3 flex items-center justify-between">
+                    <span>🔥 Aktif Faz Makro Hedefin</span>
+                    <span id="macroPhaseLabel" class="text-xs text-emerald-400">1. Faz (78-83 kg)</span>
+                </h2>
+                <div class="grid grid-cols-4 gap-2 text-center">
+                    <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                        <div class="text-[10px] text-slate-400">Kalori</div>
+                        <div id="macroCal" class="text-sm font-extrabold text-white mt-0.5">3300</div>
+                    </div>
+                    <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                        <div class="text-[10px] text-slate-400">Protein</div>
+                        <div id="macroProt" class="text-sm font-extrabold text-emerald-400 mt-0.5">180g</div>
+                    </div>
+                    <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                        <div class="text-[10px] text-slate-400">Karb</div>
+                        <div id="macroCarb" class="text-sm font-extrabold text-amber-400 mt-0.5">440g</div>
+                    </div>
+                    <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                        <div class="text-[10px] text-slate-400">Yağ</div>
+                        <div id="macroFat" class="text-sm font-extrabold text-rose-400 mt-0.5">90g</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5 Öğün + Creapure Checklist -->
+            <div class="glass-card rounded-2xl p-4 space-y-3">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Günlük Beslenme Tikleri</h3>
+                <div id="mealChecklistContainer" class="space-y-2.5">
+                    <!-- JS ile doldurulacak -->
+                </div>
+            </div>
+
+            <!-- Su Takibi (4 Litre) -->
+            <div class="glass-card rounded-2xl p-4">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-400">💧 Su Takibi (Hedef: 4.0 Litre)</span>
+                    <span id="waterText" class="text-sm font-extrabold text-sky-400">0.0 / 4.0 L</span>
+                </div>
+                <div class="grid grid-cols-8 gap-1.5 mt-3" id="waterGlasses">
+                    <!-- 8 adet 0.5L bardak butonu -->
+                </div>
+            </div>
+
+            <!-- Blender Shake Tarifleri -->
+            <div class="space-y-3">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 px-1">⚡ Özel Tarifler & Kurallar</h3>
+
+                <div class="glass-card rounded-2xl p-4 border-l-4 border-l-amber-500">
+                    <div class="flex justify-between items-start">
+                        <h4 class="text-sm font-bold text-white">1.050 Kcal "Canavar" Shake</h4>
+                        <span class="text-[11px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded font-bold">42g Protein</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-1">Sabah kahvaltıda veya gece 22:00'de kaloriyi tamamlamak için:</p>
+                    <ul class="text-xs text-slate-200 mt-2 space-y-1 list-disc list-inside">
+                        <li><b>350 ml</b> Süt + <b>100g</b> Yulaf (Önce un gibi çek)</li>
+                        <li><b>125g</b> Tatlı/Tuzsuz Lor Peyniri (veya Süzme Yoğurt)</li>
+                        <li><b>1 Büyük</b> Muz + <b>1 YK</b> Fıstık Ezmesi</li>
+                        <li><b>1 TK</b> Kakao veya Bal</li>
+                    </ul>
+                </div>
+
+                <div class="glass-card rounded-2xl p-4 border-l-4 border-l-sky-500">
+                    <div class="flex justify-between items-start">
+                        <h4 class="text-sm font-bold text-white">16:45 Antrenman Öncesi Hızlı Shake</h4>
+                        <span class="text-[11px] bg-sky-500/20 text-sky-300 px-2 py-0.5 rounded font-bold">500 Kcal | 25g P</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-1">Okuldan eve gelince mideyi yormadan hızlı enerji için:</p>
+                    <ul class="text-xs text-slate-200 mt-2 space-y-1 list-disc list-inside">
+                        <li><b>300 ml</b> Su/Süt + <b>60g</b> Yulaf veya Pirinç Unu</li>
+                        <li><b>1 Adet</b> Muz + <b>100g</b> Lor Peyniri (veya 1 ölçek Whey)</li>
+                        <li><b>1 TK</b> Bal + Yanında <b>1 Kupa Sert Kahve</b></li>
+                    </ul>
+                </div>
+
+                <div class="glass-card rounded-2xl p-4 border-l-4 border-l-emerald-500">
+                    <h4 class="text-sm font-bold text-white">🛡️ Ev Yemeği "Protein Yaması" Kuralı</h4>
+                    <p class="text-xs text-slate-300 mt-1.5 leading-relaxed">
+                        Öğle (12:15) ve Akşam (19:30) evde etli/tavuklu yemek varsa bol pilav/makarna ile ye. Eğer <b>sebze veya çorba</b> varsa yemeğin yanına şunlardan birini ekle:
+                    </p>
+                    <div class="mt-2 flex flex-wrap gap-1.5">
+                        <span class="text-[11px] bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-lg text-slate-200">🥚 3-4 Yumurta</span>
+                        <span class="text-[11px] bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-lg text-slate-200">🐟 1 Kutu Ton Balığı</span>
+                        <span class="text-[11px] bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-lg text-slate-200">🧀 150g Lor + Yoğurt</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEKME 3: 90 GÜN & KİLO TAKİBİ -->
+        <section id="tab-progress" class="space-y-4 hidden">
+            <!-- Kilo Güncelleme Kartı -->
+            <div class="glass-card rounded-2xl p-4">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-sm font-bold text-white">⚖️ Kütle Takibi (78 kg → 90 kg)</h3>
+                    <span id="weightGainBadge" class="text-xs font-bold text-emerald-400">+0.0 kg Alındı</span>
+                </div>
+                <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden my-2">
+                    <div id="weightProgressBar" class="bg-gradient-to-r from-indigo-500 to-emerald-400 h-full transition-all duration-300" style="width: 5%"></div>
+                </div>
+                <div class="flex gap-2 mt-3">
+                    <input type="number" step="0.1" id="weightInput" placeholder="Güncel kilon (Örn: 79.4)" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    <button onclick="updateWeight()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-4 py-2 rounded-xl">Kaydet</button>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-2">Her Pazar sabahı aç karnına tartıl. Haftalık artış 0.5 kg altındaysa günlük +1 bardak pirinç ekle.</p>
+            </div>
+
+            <!-- Aktif Gün Ayarı -->
+            <div class="glass-card rounded-2xl p-4 flex items-center justify-between">
+                <div>
+                    <div class="text-sm font-bold text-white">Aktif Gün: <span id="settingsDayText" class="text-emerald-400">1</span> / 90</div>
+                    <div class="text-xs text-slate-400">Günü ileri/geri sarabilirsin</div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="changeDay(-1)" class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold">-1 Gün</button>
+                    <button onclick="changeDay(1)" class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold">+1 Gün</button>
+                </div>
+            </div>
+
+            <!-- 90 Günlük Zincir Tablosu -->
+            <div class="glass-card rounded-2xl p-4">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">⛓️ 90 Günlük Zincir Tablosu</h3>
+                    <span class="text-[11px] text-slate-400">Kutuya dokunarak işaretle</span>
+                </div>
+                <div id="ninetyDayGrid" class="grid grid-cols-10 gap-1.5">
+                    <!-- 90 Kutu JS ile oluşturulacak -->
+                </div>
+            </div>
+        </section>
+
+        <!-- SEKME 4: YOL HARİTASI & KURALLAR -->
+        <section id="tab-roadmap" class="space-y-4 hidden">
+            <div class="glass-card rounded-2xl p-4 border-l-4 border-l-emerald-500">
+                <h3 class="text-sm font-bold text-emerald-400">1. FAZ: Temel & Kas Hafızası (1 - 30. Gün)</h3>
+                <ul class="text-xs text-slate-200 mt-2 space-y-1.5 list-disc list-inside">
+                    <li><b>Beslenme:</b> 3.300 kcal | 78 kilodan 83 kiloya hızlı glikojen ve kas dolumu.</li>
+                    <li><b>Okul:</b> İşlenen dersleri vizeye bırakmadan haftalık özet ve soruyla bitir.</li>
+                    <li><b>Para & Beceri:</b> Sabah 07:30-09:30 bloğunda seçtiğin yazılım/teknik alanda temel eksikleri uygulama yaparak kapat.</li>
+                    <li><b>Finans:</b> "Babil'in En Zengin Adamı" ve "Paranın Psikolojisi" kitaplarını bitir, gelir-gider tablosu kur.</li>
+                </ul>
+            </div>
+
+            <div class="glass-card rounded-2xl p-4 border-l-4 border-l-indigo-500">
+                <h3 class="text-sm font-bold text-indigo-400">2. FAZ: Derinleşme & Üretim (31 - 60. Gün)</h3>
+                <ul class="text-xs text-slate-200 mt-2 space-y-1.5 list-disc list-inside">
+                    <li><b>Beslenme:</b> 3.550 kcal | 83 kilodan 86.5 kiloya temiz hipertrofi yüklemesi.</li>
+                    <li><b>Okul:</b> Sınav haftalarında sabahki iki odak bloğunu birleştirip yüksek not al.</li>
+                    <li><b>Para & Beceri:</b> Video izlemeyi azalt, portfolyona koyacağın <b>2 somut çalışan proje</b> üret.</li>
+                    <li><b>Finans:</b> TEFAS fonları, BIST/ABD borsaları ve bilanço okuma pratiği yap.</li>
+                </ul>
+            </div>
+
+            <div class="glass-card rounded-2xl p-4 border-l-4 border-l-amber-500">
+                <h3 class="text-sm font-bold text-amber-400">3. FAZ: Ustalık & Nakde Dönüşüm (61 - 90. Gün)</h3>
+                <ul class="text-xs text-slate-200 mt-2 space-y-1.5 list-disc list-inside">
+                    <li><b>Beslenme:</b> 3.750 kcal | 86.5 kilodan 90 kiloya zirve kütle kapanışı.</li>
+                    <li><b>Para & Beceri:</b> Freelance profillerini (Upwork, Bionluk, GitHub, LinkedIn) yayına al, iş/staj başvurularına ve satışa başla.</li>
+                    <li><b>Finans:</b> Uzun vadeli yatırım sepetini otomatikleştir.</li>
+                </ul>
+            </div>
+
+            <div class="glass-card rounded-2xl p-4 space-y-2">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-rose-400">⚡ 3 Altın Kural</h3>
+                <p class="text-xs text-slate-300"><b>1. Saat 20:00 Şalteri:</b> Akşam 20:00'den sonra ders veya iş düşünmek yasak. Suçluluk duymadan oyununu oyna ve sosyalleş.</p>
+                <p class="text-xs text-slate-300"><b>2. Sıfır Gün Yoktur:</b> Çok yorgun olduğun gün 2 saat çalışamıyorsan bile masaya oturup 20 dakika çalışacaksın.</p>
+                <p class="text-xs text-slate-300"><b>3. Bacak Simetrisi:</b> Cuma (İtiş) sonuna 3 set Ön Bacak, Cumartesi (Çekiş) sonuna 3 set Arka Bacak eklenecek.</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ALT NAVİGASYON BAR (MOBİL UYGULAMA MENÜSÜ) -->
+    <nav class="fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-lg border-t border-slate-800 pb-safe">
+        <div class="max-w-md mx-auto grid grid-cols-4 py-2">
+            <button onclick="switchTab('today')" id="nav-today" class="flex flex-col items-center py-1 text-emerald-400">
+                <span class="text-lg">📋</span>
+                <span class="text-[11px] font-bold mt-0.5">Bugün</span>
+            </button>
+            <button onclick="switchTab('nutrition')" id="nav-nutrition" class="flex flex-col items-center py-1 text-slate-400">
+                <span class="text-lg">🥤</span>
+                <span class="text-[11px] font-bold mt-0.5">Beslenme</span>
+            </button>
+            <button onclick="switchTab('progress')" id="nav-progress" class="flex flex-col items-center py-1 text-slate-400">
+                <span class="text-lg">📈</span>
+                <span class="text-[11px] font-bold mt-0.5">90 Gün</span>
+            </button>
+            <button onclick="switchTab('roadmap')" id="nav-roadmap" class="flex flex-col items-center py-1 text-slate-400">
+                <span class="text-lg">🧭</span>
+                <span class="text-[11px] font-bold mt-0.5">Sistem</span>
+            </button>
+        </div>
+    </nav>
+
+    <script>
+        // HAFTALIK PROGRAM VERİTABANI
+        const schedules = {
+            1: {
+                title: "Pazartesi (Okul 13:00-17:00)",
+                workout: "SPOR: İTİŞ (Göğüs / Omuz / Triceps) - 17:30",
+                tasks: [
+                    { id: "t1", time: "06:45 - 07:30", title: "Uyanış & 1. Öğün (Güç Kahvaltısı)", desc: "4 yumurta + yulaf + muz (~800 kcal)" },
+                    { id: "t2", time: "07:30 - 09:30", title: "Derin Odak 1: Para Kazandıracak Beceri", desc: "2 saat telefonsuz yazılım / proje üretimi" },
+                    { id: "t3", time: "10:00 - 11:30", title: "Odak 2: Okul Dersleri & Sınav Çalışması", desc: "1.5 saat ders tekrarı ve soru/uygulama" },
+                    { id: "t4", time: "11:30 - 12:15", title: "Odak 3: Finansal Okuryazarlık & Yatırım", desc: "45 dk finans kitabı / piyasa analizi / İngilizce" },
+                    { id: "t5", time: "12:15 - 13:00", title: "2. Öğün (Öğle Yemeği) & Okula Çıkış", desc: "Bol karb + protein (~900 kcal)" },
+                    { id: "t6", time: "13:00 - 16:45", title: "Okul Zamanı", desc: "Dersleri dikkatli dinle, 1L su tüket" },
+                    { id: "t7", time: "16:45 - 17:30", title: "3. Öğün: Hızlı Pre-Workout Shake + Kahve", desc: "Muz + yulaf/pirinç unu + lor (~500 kcal)" },
+                    { id: "t8", time: "17:30 - 19:15", title: "ANTRENMAN: İtiş Günü", desc: "Ağırlıkları not al, Progressive Overload uygula" },
+                    { id: "t9", time: "19:15 - 20:00", title: "4. Öğün (Akşam Yemeği) + 5g Creapure", desc: "Yüksek protein/karb + 5g Kreatin" },
+                    { id: "t10", time: "20:00 - 22:30", title: "Serbest Zaman & Kafa Dağıtma", desc: "Oyun, sosyal hayat, dinlenme (İş düşünmek yasak)" },
+                    { id: "t11", time: "22:30 - 23:15", title: "5. Öğün (Gece Kazein/Shake) & Uyku", desc: "Lor peyniri veya 1000 kcal Shake, 23:15 yatış" }
+                ]
+            },
+            2: {
+                title: "Salı (Okul 13:00-17:00)",
+                workout: "SPOR: ÇEKİŞ (Sırt / Arka Omuz / Biceps) - 17:30",
+                tasks: [
+                    { id: "t1", time: "06:45 - 07:30", title: "Uyanış & 1. Öğün (Güç Kahvaltısı)", desc: "4 yumurta + yulaf + muz (~800 kcal)" },
+                    { id: "t2", time: "07:30 - 09:30", title: "Derin Odak 1: Para Kazandıracak Beceri", desc: "2 saat kodlama / proje geliştirme" },
+                    { id: "t3", time: "10:00 - 11:30", title: "Odak 2: Okul Dersleri & Sınav Çalışması", desc: "1.5 saat ders tekrarı ve uygulama" },
+                    { id: "t4", time: "11:30 - 12:15", title: "Odak 3: Finansal Okuryazarlık & Yatırım", desc: "45 dk finans / yatırım / AI araçları" },
+                    { id: "t5", time: "12:15 - 13:00", title: "2. Öğün (Öğle Yemeği) & Okula Çıkış", desc: "Ev yemeği + pilav/makarna (~900 kcal)" },
+                    { id: "t6", time: "13:00 - 16:45", title: "Okul Zamanı", desc: "Yanında su bulundur" },
+                    { id: "t7", time: "16:45 - 17:30", title: "3. Öğün: Hızlı Pre-Workout Shake + Kahve", desc: "Hızlı sindirilen karb + protein" },
+                    { id: "t8", time: "17:30 - 19:15", title: "ANTRENMAN: Çekiş Günü", desc: "Sırt genişlik/kalınlık ve Biceps" },
+                    { id: "t9", time: "19:15 - 20:00", title: "4. Öğün (Akşam Yemeği) + 5g Creapure", desc: "Yüksek protein/karb + 5g Kreatin" },
+                    { id: "t10", time: "20:00 - 22:30", title: "Serbest Zaman", desc: "Oyun, dinlenme, sosyal vakit" },
+                    { id: "t11", time: "22:30 - 23:15", title: "5. Öğün (Gece Kazein/Shake) & Uyku", desc: "Lor peyniri / Shake ve 23:15 uyku" }
+                ]
+            },
+            3: {
+                title: "Çarşamba (Okul 13:00-17:00)",
+                workout: "SPOR: BACAK (Quad / Hamstring / Kalf) - 17:30",
+                tasks: [
+                    { id: "t1", time: "06:45 - 07:30", title: "Uyanış & 1. Öğün (Güç Kahvaltısı)", desc: "Bacak günü için sağlam kahvaltı" },
+                    { id: "t2", time: "07:30 - 09:30", title: "Derin Odak 1: Para Kazandıracak Beceri", desc: "2 saat pratik proje üretimi" },
+                    { id: "t3", time: "10:00 - 11:30", title: "Odak 2: Okul Dersleri & Sınav Çalışması", desc: "1.5 saat haftalık ders özeti" },
+                    { id: "t4", time: "11:30 - 12:15", title: "Odak 3: Finansal Okuryazarlık", desc: "45 dk finans okuması" },
+                    { id: "t5", time: "12:15 - 13:00", title: "2. Öğün (Öğle Yemeği) & Çıkış", desc: "Yüksek karbonhidratlı öğle yemeği" },
+                    { id: "t6", time: "13:00 - 16:45", title: "Okul Zamanı", desc: "Perşembe sabah dersine hazırlık" },
+                    { id: "t7", time: "16:45 - 17:30", title: "3. Öğün: Pre-Workout Shake + Kahve + Tuz", desc: "Bacak antrenmanı öncesi tam yakıt" },
+                    { id: "t8", time: "17:30 - 19:15", title: "ANTRENMAN: Bacak Günü", desc: "Ağır bileşik bacak egzersizleri" },
+                    { id: "t9", time: "19:15 - 20:00", title: "4. Öğün (Akşam Yemeği) + 5g Creapure", desc: "Bacak onarımı için bol porsiyon" },
+                    { id: "t10", time: "20:00 - 22:30", title: "Serbest Zaman", desc: "Dinlenme ve oyun" },
+                    { id: "t11", time: "22:30 - 23:00", title: "5. Öğün & Erken Uyku (Yarın 08:00 Okul)", desc: "Gece öğünü ve 23:00 net uyku" }
+                ]
+            },
+            4: {
+                title: "Perşembe (Sabah Okul 08:00-15:30)",
+                workout: "DİNLENME GÜNÜ (Off-Day & Kas Onarımı)",
+                tasks: [
+                    { id: "t1", time: "06:45 - 07:45", title: "Uyanış & 1. Öğün (Kahvaltı)", desc: "Okulda uzun kalacağın için sağlam kahvaltı" },
+                    { id: "t2", time: "08:00 - 15:30", title: "Okul Zamanı (Saat 12:30'da 2. Öğün!)", desc: "Okulda/dışarıda öğle yemeğini kesinlikle atlama" },
+                    { id: "t3", time: "16:00 - 16:30", title: "Eve Dönüş & 3. Öğün (Shake / Ara Öğün)", desc: "Okul yorgunluğunu alacak ara öğün + 5g Creapure" },
+                    { id: "t4", time: "16:30 - 18:00", title: "Tek Odak Bloğu: Perşembe Ders Tekrarı + Finans", desc: "1.5 saatte bugünün derslerini ve finans okumasını bitir" },
+                    { id: "t5", time: "18:00 - 19:30", title: "Erken Serbest Zaman Başlangıcı", desc: "Off-day keyfi, sosyal hayat veya oyun" },
+                    { id: "t6", time: "19:30 - 20:15", title: "4. Öğün (Akşam Yemeği)", desc: "Ev yemeği (+ gerekirse Protein Yaması)" },
+                    { id: "t7", time: "22:30 - 23:15", title: "5. Öğün (1000 Kcal Shake / Lor) & Uyku", desc: "Off günde de kaloriyi tam kapat" }
+                ]
+            },
+            5: {
+                title: "Cuma (Tam Gün Senin - Okul Yok)",
+                workout: "SPOR: İTİŞ + 3 Set Ön Bacak (13:30)",
+                tasks: [
+                    { id: "t1", time: "06:45 - 07:30", title: "Uyanış & 1. Öğün (Güç Kahvaltısı)", desc: "4 yumurta + yulaf + muz" },
+                    { id: "t2", time: "07:30 - 09:30", title: "Derin Odak 1: Para Kazandıracak Proje", desc: "2 saat kesintisiz üretim / kodlama" },
+                    { id: "t3", time: "10:00 - 11:30", title: "Odak 2: Haftalık Okul Tekrarı", desc: "Haftanın tüm derslerini gözden geçir" },
+                    { id: "t4", time: "11:30 - 12:15", title: "Odak 3: Finans & Piyasa Okuması", desc: "45 dk yatırım / portföy incelemesi" },
+                    { id: "t5", time: "12:15 - 13:00", title: "2. Öğün (Pre-Workout Ana Yemek)", desc: "Spora 1.5 saat kala sağlam karb + protein" },
+                    { id: "t6", time: "13:30 - 15:30", title: "ANTRENMAN: İtiş + 1 Hareket Ön Bacak", desc: "İtiş sonuna 3 set Leg Press / Extension ekle" },
+                    { id: "t7", time: "15:45 - 16:30", title: "3. Öğün (Post-Workout Yemeği) + 5g Creapure", desc: "Antrenman sonrası hızlı toparlanma" },
+                    { id: "t8", time: "16:30 - 18:00", title: "Kişisel Portfolyo / Freelance Araştırma", desc: "1.5 saat serbest üretim bloğu" },
+                    { id: "t9", time: "18:00 - 23:30", title: "Cuma Akşamı Serbest Zaman + 4. ve 5. Öğün", desc: "19:30 Akşam yemeği, 22:30 Gece Shake'i" }
+                ]
+            },
+            6: {
+                title: "Cumartesi (Tam Gün Senin - Okul Yok)",
+                workout: "SPOR: ÇEKİŞ + 3 Set Arka Bacak (13:30)",
+                tasks: [
+                    { id: "t1", time: "07:00 - 07:45", title: "Uyanış & 1. Öğün (Kahvaltı)", desc: "Güç kahvaltısı" },
+                    { id: "t2", time: "08:00 - 10:00", title: "Derin Odak 1: Pratik Proje Üretimi", desc: "2 saat portfolyo projesi geliştirme" },
+                    { id: "t3", time: "10:30 - 12:00", title: "Odak 2: Eksik Ders / Sınav Hazırlığı + Finans", desc: "1.5 saatlik haftalık tamamlama bloğu" },
+                    { id: "t4", time: "12:00 - 12:45", title: "2. Öğün (Pre-Workout Öğle Yemeği)", desc: "Bol karbonhidrat ve protein" },
+                    { id: "t5", time: "13:30 - 15:30", title: "ANTRENMAN: Çekiş + 1 Hareket Arka Bacak", desc: "Çekiş sonuna 3 set Leg Curl / RDL ekle" },
+                    { id: "t6", time: "15:45 - 16:30", title: "3. Öğün (Post-Workout) + 5g Creapure", desc: "Kreatin ve spor sonrası öğünü" },
+                    { id: "t7", time: "16:30 - 00:00", title: "Cumartesi Serbest Zaman & Sosyal Hayat", desc: "19:30 Akşam yemeği ve 22:30 Shake'i unutma" }
+                ]
+            },
+            0: {
+                title: "Pazar (Reset, Tartı & Dinlenme Günü)",
+                workout: "DİNLENME GÜNÜ (Tam Toparlanma)",
+                tasks: [
+                    { id: "t1", time: "08:30 - 09:30", title: "Aç Karnına Tartıl + 1. Öğün (Kahvaltı)", desc: "Kilonu 90 Gün sekmesine kaydet" },
+                    { id: "t2", time: "11:00 - 12:30", title: "Haftalık Finans & Portföy Kontrolü", desc: "Bütçe ve yatırım incelemesi" },
+                    { id: "t3", time: "12:30 - 19:30", title: "Tam Gün Dinlenme, Oyun & Sosyal Hayat", desc: " Öğle (12:30) ve Ara Öğün (16:30) + 5g Creapure" },
+                    { id: "t4", time: "19:30 - 20:30", title: "4. Öğün + Haftalık 30 Dk Muhasebe", desc: "Bu hafta sporda, okulda ve beceride ne ilerledim?" },
+                    { id: "t5", time: "22:30 - 23:00", title: "5. Öğün (Gece Shake/Lor) & Erken Uyku", desc: "Pazartesi sabahı 06:45 için 23:00'te uyu" }
+                ]
+            }
+        };
+
+        const defaultMeals = [
+            { id: "m1", title: "07:00 - 1. Öğün: Güç Kahvaltısı", sub: "4 Yumurta + Yulaf + Muz (~800 kcal)" },
+            { id: "m2", title: "12:15 - 2. Öğün: Okul Öncesi Ana Yemek", sub: "Ev Yemeği + Bol Pilav/Makarna (+ Protein Yaması)" },
+            { id: "m3", title: "16:45 - 3. Öğün: Pre-Workout Hızlı Shake", sub: "Yulaf/Pirinç Unu + Muz + Lor + Kahve (~500 kcal)" },
+            { id: "m4", title: "19:30 - 4. Öğün: Spor Sonrası Akşam Yemeği", sub: "Bol Porsiyon Ev Yemeği (~900 kcal)" },
+            { id: "m5", title: "22:30 - 5. Öğün: 1000 Kcal Shake veya Lor", sub: "Gece kas onarımı ve kalori tamamlama" },
+            { id: "m6", title: "💊 Günlük 5g Creapure Kreatin", sub: "Antrenman sonrası öğünle birlikte alındı" }
+        ];
+
+        // UYGULAMA DURUMU (LOCALSTORAGE)
+        let state = JSON.parse(localStorage.getItem("berat90DayApp")) || {
+            currentDay: 1,
+            selectedDow: new Date().getDay(),
+            weight: 78.0,
+            waterHalfLiters: 0,
+            checkedTasks: {},
+            checkedMeals: {},
+            completedDays: {},
+            dailyNote: ""
+        };
+
+        function saveState() {
+            localStorage.setItem("berat90DayApp", JSON.stringify(state));
+            updateHeaderAndProgress();
+        }
+
+        function initApp() {
+            document.getElementById("dailyNoteInput").value = state.dailyNote || "";
+            document.getElementById("weightInput").value = state.weight;
+            selectDayOfWeek(state.selectedDow);
+            renderMeals();
+            renderWater();
+            renderNinetyDayGrid();
+            updateHeaderAndProgress();
+        }
+
+        function updateHeaderAndProgress() {
+            const day = state.currentDay;
+            document.getElementById("currentDayNum").innerText = day;
+            document.getElementById("settingsDayText").innerText = day;
+            document.getElementById("headerCurrentWeight").innerText = parseFloat(state.weight).toFixed(1);
+
+            // Faz Hesaplama
+            let phaseText = "1. FAZ";
+            let calText = "Hedef: 3.300 kcal";
+            let macroPhase = "1. Faz (78-83 kg)";
+            let cal = "3300", prot = "180g", carb = "440g", fat = "90g";
+
+            if (day > 30 && day <= 60) {
+                phaseText = "2. FAZ";
+                calText = "Hedef: 3.550 kcal";
+                macroPhase = "2. Faz (83-86.5 kg)";
+                cal = "3550"; prot = "190g"; carb = "490g"; fat = "95g";
+            } else if (day > 60) {
+                phaseText = "3. FAZ";
+                calText = "Hedef: 3.750 kcal";
+                macroPhase = "3. Faz (86.5-90 kg)";
+                cal = "3750"; prot = "200g"; carb = "530g"; fat = "100g";
+            }
+
+            document.getElementById("phaseBadge").innerText = phaseText;
+            document.getElementById("calorieTargetBadge").innerText = calText;
+            document.getElementById("macroPhaseLabel").innerText = macroPhase;
+            document.getElementById("macroCal").innerText = cal;
+            document.getElementById("macroProt").innerText = prot;
+            document.getElementById("macroCarb").innerText = carb;
+            document.getElementById("macroFat").innerText = fat;
+
+            // Günlük Tamamlanma Yüzdesi (Görevler + Öğünler)
+            const currentTasks = schedules[state.selectedDow].tasks;
+            const doneTasks = currentTasks.filter(t => state.checkedTasks[t.id]).length;
+            const doneMeals = defaultMeals.filter(m => state.checkedMeals[m.id]).length;
+            const totalItems = currentTasks.length + defaultMeals.length;
+            const percent = Math.round(((doneTasks + doneMeals) / totalItems) * 100);
+
+            document.getElementById("dailyPercentText").innerText = `%${percent}`;
+            document.getElementById("dailyProgressBar").style.width = `${percent}%`;
+
+            // Kilo İlerlemesi (78 -> 90 = 12 kg fark)
+            const gained = (state.weight - 78.0).toFixed(1);
+            document.getElementById("weightGainBadge").innerText = (gained >= 0 ? `+${gained}` : gained) + " kg";
+            const weightPct = Math.max(5, Math.min(100, ((state.weight - 78) / 12) * 100));
+            document.getElementById("weightProgressBar").style.width = `${weightPct}%`;
+        }
+
+        function selectDayOfWeek(dow) {
+            state.selectedDow = dow;
+            document.querySelectorAll(".day-btn").forEach(btn => {
+                btn.className = "day-btn flex-1 py-2 px-3 rounded-xl text-xs font-bold border border-slate-700 bg-slate-800 text-slate-300 transition";
+            });
+            const activeBtn = document.getElementById(`dayBtn-${dow}`);
+            if (activeBtn) {
+                activeBtn.className = "day-btn flex-1 py-2 px-3 rounded-xl text-xs font-bold border border-emerald-500 bg-emerald-500/20 text-emerald-300 transition";
+            }
+
+            const dayData = schedules[dow];
+            document.getElementById("dayScheduleTitle").innerText = dayData.title;
+            document.getElementById("dayWorkoutBadge").innerText = dayData.workout;
+
+            const container = document.getElementById("scheduleContainer");
+            container.innerHTML = "";
+
+            dayData.tasks.forEach(task => {
+                const isChecked = !!state.checkedTasks[task.id];
+                const card = document.createElement("label");
+                card.className = `glass-card rounded-2xl p-3.5 flex items-start gap-3 cursor-pointer transition ${isChecked ? 'opacity-60 border-emerald-500/30' : ''}`;
+                card.innerHTML = `
+                    <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleTask('${task.id}')" class="checkbox-custom mt-1 w-5 h-5 rounded accent-emerald-500">
+                    <div class="flex-1">
+                        <div class="text-[11px] font-bold text-emerald-400">${task.time}</div>
+                        <div class="text-sm font-bold text-white mt-0.5">${task.title}</div>
+                        <div class="text-xs text-slate-400 mt-0.5">${task.desc}</div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+            saveState();
+        }
+
+        function toggleTask(taskId) {
+            state.checkedTasks[taskId] = !state.checkedTasks[taskId];
+            selectDayOfWeek(state.selectedDow);
+        }
+
+        function renderMeals() {
+            const container = document.getElementById("mealChecklistContainer");
+            container.innerHTML = "";
+            defaultMeals.forEach(meal => {
+                const isChecked = !!state.checkedMeals[meal.id];
+                const item = document.createElement("label");
+                item.className = `flex items-start gap-3 p-3 rounded-xl bg-slate-900/70 border border-slate-800 cursor-pointer ${isChecked ? 'opacity-60' : ''}`;
+                item.innerHTML = `
+                    <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleMeal('${meal.id}')" class="checkbox-custom mt-0.5 w-5 h-5 rounded accent-emerald-500">
+                    <div>
+                        <div class="text-sm font-bold text-white">${meal.title}</div>
+                        <div class="text-xs text-slate-400">${meal.sub}</div>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function toggleMeal(mealId) {
+            state.checkedMeals[mealId] = !state.checkedMeals[mealId];
+            renderMeals();
+            saveState();
+        }
+
+        function renderWater() {
+            const container = document.getElementById("waterGlasses");
+            container.innerHTML = "";
+            for (let i = 1; i <= 8; i++) {
+                const filled = i <= state.waterHalfLiters;
+                const btn = document.createElement("button");
+                btn.onclick = () => {
+                    state.waterHalfLiters = (state.waterHalfLiters === i) ? i - 1 : i;
+                    renderWater();
+                    saveState();
+                };
+                btn.className = `py-2.5 rounded-xl text-xs font-bold border transition ${filled ? 'bg-sky-500/30 border-sky-400 text-sky-200' : 'bg-slate-900 border-slate-800 text-slate-500'}`;
+                btn.innerText = "0.5L";
+                container.appendChild(btn);
+            }
+            document.getElementById("waterText").innerText = `${(state.waterHalfLiters * 0.5).toFixed(1)} / 4.0 L`;
+        }
+
+        function completeDayAndAdvance() {
+            state.completedDays[state.currentDay] = true;
+            if (state.currentDay < 90) state.currentDay += 1;
+            state.checkedTasks = {};
+            state.checkedMeals = {};
+            state.waterHalfLiters = 0;
+            state.selectedDow = (state.selectedDow + 1) % 7;
+            selectDayOfWeek(state.selectedDow);
+            renderMeals();
+            renderWater();
+            renderNinetyDayGrid();
+            saveState();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function renderNinetyDayGrid() {
+            const grid = document.getElementById("ninetyDayGrid");
+            grid.innerHTML = "";
+            for (let i = 1; i <= 90; i++) {
+                const isDone = !!state.completedDays[i];
+                const isCurrent = (i === state.currentDay);
+                const btn = document.createElement("button");
+                btn.onclick = () => {
+                    state.completedDays[i] = !state.completedDays[i];
+                    renderNinetyDayGrid();
+                    saveState();
+                };
+                btn.className = `h-8 rounded-lg text-xs font-bold border transition ${
+                    isDone ? 'bg-emerald-500 border-emerald-400 text-slate-950' :
+                    isCurrent ? 'bg-indigo-600/40 border-indigo-400 text-white animate-pulse' :
+                    'bg-slate-900 border-slate-800 text-slate-400'
+                }`;
+                btn.innerText = i;
+                grid.appendChild(btn);
+            }
+        }
+
+        function updateWeight() {
+            const val = parseFloat(document.getElementById("weightInput").value);
+            if (!isNaN(val) && val > 40 && val < 150) {
+                state.weight = val;
+                saveState();
+            }
+        }
+
+        function changeDay(delta) {
+            const next = state.currentDay + delta;
+            if (next >= 1 && next <= 90) {
+                state.currentDay = next;
+                renderNinetyDayGrid();
+                saveState();
+            }
+        }
+
+        function saveNote() {
+            state.dailyNote = document.getElementById("dailyNoteInput").value;
+            saveState();
+        }
+
+        function switchTab(tabName) {
+            ['today', 'nutrition', 'progress', 'roadmap'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.add('hidden');
+                document.getElementById(`nav-${t}`).className = "flex flex-col items-center py-1 text-slate-400";
+            });
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            document.getElementById(`nav-${tabName}`).className = "flex flex-col items-center py-1 text-emerald-400";
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        initApp();
+    </script>
+</body>
+</html>
